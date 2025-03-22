@@ -1,4 +1,4 @@
-name: Pipeline EarScope Website Build and Push Image
+name: Pipeline Earscope Web
 
 on:
   push:
