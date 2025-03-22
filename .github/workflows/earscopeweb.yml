@@ -1,0 +1,61 @@
+name: Pipeline EarScope Website Build and Push Image
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - v*
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+        # Checkout Repository
+        - name: Checkout Repository
+          uses: actions/checkout@v4
+    
+        # Login Dockerhub
+        - name: Login Dockerhub
+          run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        
+        # Extract Tag Git or Push Tag
+        - name: Extract Version from Git Tag or Commit Hash
+          id: extract_version
+          run: |
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+              # Jika ada tag Git, gunakan sebagai versi
+              VERSION=${GITHUB_REF#refs/tags/}
+            elif [ -n "$GITHUB_REF_NAME" ] && [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              # Jika ada tag Git dalam format semantik
+              VERSION=$GITHUB_REF_NAME
+            else
+              # Jika tidak ada tag, gunakan commit hash pendek sebagai fallback
+              VERSION=$(echo $GITHUB_SHA | cut -c1-7)
+            fi
+            echo "Extracted version: $VERSION"
+            echo "version=$VERSION" >> $GITHUB_ENV
+
+        # Env Var Show
+        - name: Show Env Variables
+          run: env
+        
+        # Build Docker Image
+        - name: Build Docker Image
+          run: |
+            # Build image with latest tag
+            docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/earscopeweb-backend:latest .
+
+            # Build image with tag version
+            docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/earscopeweb-backend:${{ env.version }} .
+
+        # Push Docker Image
+        - name: Push Docker Image
+          run: |
+            # Push image with tag latest
+            docker push ${{ secrets.DOCKERHUB_USERNAME }}/earscopeweb-backend:latest
+
+            # Push image with tag version
+            docker push ${{ secrets.DOCKERHUB_USERNAME }}/earscopeweb-backend:${{ env.version }}

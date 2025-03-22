@@ -21,17 +21,14 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 # Set working directory
 WORKDIR /app
 
-# Copy all files
-COPY . .
+# Copy compose file
+COPY composer.json composer.lock ./
 
-# Install dependencies lebih awal untuk caching
+# Install dependencies
 RUN composer install --ignore-platform-reqs --no-dev -a
 
 # Copy semua file aplikasi setelah dependencies terinstall
-
-# Set Environment Production
-ENV APP_ENV=production
-ENV APP_DEBUG=false
+COPY . .
 
 # Install Octane dengan FrankenPHP tanpa interaksi
 RUN echo "yes" | php artisan octane:install --server=frankenphp --no-interaction
@@ -41,11 +38,14 @@ RUN chown -R www-data:www-data storage bootstrap/cache && \
     chmod -R 777 storage bootstrap/cache
 
 # Konfigurasi PHP upload limit
-RUN echo "upload_max_filesize = 50M" >> /usr/local/etc/php/conf.d/custom.ini && \
-    echo "post_max_size = 50M" >> /usr/local/etc/php/conf.d/custom.ini
+COPY custom-file.ini /usr/local/etc/php/conf.d/custom.ini
 
-# Expose port 8010
-EXPOSE 8010
+# Expose port 8000
+EXPOSE 8000
 
-# Jalankan Laravel Octane dengan FrankenPHP
-CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8010"]
+# Set User
+USER www-data
+
+# Run
+ENTRYPOINT ["php", "artisan", "octane:frankenphp"]
+CMD ["--host=0.0.0.0", "--port=8000"]
