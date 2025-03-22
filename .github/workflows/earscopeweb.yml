@@ -27,27 +27,28 @@ jobs:
         run: |
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/}
-            BUILD_LATEST=true
+            PUSH_LATEST=true
           else
-            VERSION=$(echo $GITHUB_SHA | cut -c1-7)
-            BUILD_LATEST=false
+            VERSION="latest"
+            PUSH_LATEST=false
           fi
           echo "Extracted version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_ENV
-          echo "build_latest=$BUILD_LATEST" >> $GITHUB_ENV
+          echo "push_latest=$PUSH_LATEST" >> $GITHUB_ENV
 
       # Build Docker Image
       - name: Build Docker Image
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/earscopeweb-backend:${{ env.version }} .
-          if [[ "${{ env.build_latest }}" == "true" ]]; then
-            docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/earscopeweb-backend:latest .
+          if [[ "${{ env.push_latest }}" == "true" ]]; then
+            docker tag ${{ secrets.DOCKERHUB_USERNAME }}/earscopeweb-backend:${{ env.version }} \
+                       ${{ secrets.DOCKERHUB_USERNAME }}/earscopeweb-backend:latest
           fi
 
       # Push Docker Image
       - name: Push Docker Image
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/earscopeweb-backend:${{ env.version }}
-          if [[ "${{ env.build_latest }}" == "true" ]]; then
+          if [[ "${{ env.push_latest }}" == "true" ]]; then
             docker push ${{ secrets.DOCKERHUB_USERNAME }}/earscopeweb-backend:latest
           fi
