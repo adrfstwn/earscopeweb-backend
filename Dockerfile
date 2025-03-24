@@ -5,7 +5,7 @@ FROM composer:latest AS build
 WORKDIR /app
 
 # Copy Composer files lebih awal untuk cache
-COPY composer.json composer.lock ./
+COPY composer.json composer.lock artisan ./
 
 # Install dependencies Laravel (tanpa dev dependencies)
 RUN composer install --ignore-platform-reqs --no-dev -a
