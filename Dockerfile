@@ -7,11 +7,11 @@ WORKDIR /app
 # Copy Composer files lebih awal untuk cache
 COPY composer.json composer.lock ./
 
+# Salin seluruh file aplikasi agar artisan tersedia
+COPY . .
+
 # Install dependencies Laravel (tanpa dev dependencies)
 RUN composer install --ignore-platform-reqs --no-dev -a
-
-# Baru setelah itu, copy semua file aplikasi
-COPY . .
 
 ## 2. Main PHP Image
 FROM dunglas/frankenphp:latest
@@ -21,7 +21,7 @@ WORKDIR /app
 
 # Install dependencies dengan cleanup agar image lebih kecil
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates curl \
+    ca-certificates curl ffmpeg \
     && install-php-extensions pcntl zip bcmath pdo_mysql mysqli \
     && rm -rf /var/lib/apt/lists/*
 
