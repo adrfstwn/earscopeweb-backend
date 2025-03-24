@@ -39,10 +39,13 @@ RUN echo "yes" | php artisan octane:install --server=frankenphp --no-interaction
 
 # Set permission Laravel storage & cache untuk user www-data
 RUN chown -R www-data:www-data storage bootstrap/cache && \
-    chmod -R 777 storage bootstrap/cache
+    chmod -R 775 storage bootstrap/cache
 
 # Konfigurasi PHP upload limit (gunakan COPY untuk file custom)
 COPY custom-file.ini /usr/local/etc/php/conf.d/custom.ini
+
+# Pastikan session save path dan konfigurasi lainnya benar
+RUN echo "session.save_path = /app/storage/framework/sessions" >> /usr/local/etc/php/conf.d/custom.ini
 
 # Gunakan user www-data untuk security
 USER www-data
