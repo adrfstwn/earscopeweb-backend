@@ -1,54 +1,30 @@
-## 1. Build Stage: Install Composer Dependencies
-FROM composer:latest AS build
-
-# Workdir Build Stage
-WORKDIR /app
-
-# Copy Composer files lebih awal untuk cache
-COPY composer.json composer.lock ./
-
-# Salin seluruh file aplikasi agar artisan tersedia
-COPY . .
-
-# Install dependencies Laravel (tanpa dev dependencies)
-RUN composer install --ignore-platform-reqs --no-dev -a
-
-## 2. Main PHP Image
+## Main PHP Image
 FROM dunglas/frankenphp:latest
-
-# Workdir aplikasi
-WORKDIR /app
 
 # Install dependencies dengan cleanup agar image lebih kecil
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl ffmpeg \
     && install-php-extensions pcntl zip bcmath pdo_mysql mysqli \
     && rm -rf /var/lib/apt/lists/*
-
-# Copy Composer Dependencies dari Build Stage
-COPY --from=build /app/vendor /app/vendor
+    
+# Workdir aplikasi
+WORKDIR /app
 
 # Copy seluruh kode aplikasi setelah vendor masuk
 COPY . .
 
-# Jalankan package discover (sebaiknya setelah seluruh file aplikasi ada)
-RUN php artisan package:discover --ansi
+# Install dependencies lebih awal untuk caching
+RUN composer install --ignore-platform-reqs --no-dev -a
 
 # Install Octane dengan FrankenPHP tanpa interaksi
 RUN echo "yes" | php artisan octane:install --server=frankenphp --no-interaction
 
-# Set permission Laravel storage & cache untuk user www-data
+# Set permission Laravel storage & cache dengan user www-data
 RUN chown -R www-data:www-data storage bootstrap/cache && \
-    chmod -R 775 storage bootstrap/cache
+    chmod -R 777 storage bootstrap/cache
 
 # Konfigurasi PHP upload limit (gunakan COPY untuk file custom)
 COPY custom-file.ini /usr/local/etc/php/conf.d/custom.ini
-
-# Pastikan session save path dan konfigurasi lainnya benar
-RUN echo "session.save_path = /app/storage/framework/sessions" >> /usr/local/etc/php/conf.d/custom.ini
-
-# Gunakan user www-data untuk security
-USER www-data
 
 # Expose port 8000
 EXPOSE 8000
