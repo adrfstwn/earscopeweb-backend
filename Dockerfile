@@ -5,11 +5,10 @@ FROM composer:latest AS build
 WORKDIR /app
 
 # Copy Composer files lebih awal untuk cache
-COPY composer.json composer.lock artisan ./
+COPY . . 
 
 # Install dependencies Laravel (tanpa dev dependencies)
 RUN composer install --ignore-platform-reqs --no-dev -a
-
 
 ## 2. Main PHP Image
 FROM dunglas/frankenphp:latest
@@ -28,6 +27,9 @@ COPY --from=build /app/vendor /app/vendor
 
 # Copy seluruh kode aplikasi setelah vendor masuk
 COPY . .
+
+# running package discover 
+RUN php artisan package:discover --ansi
 
 # Set permission Laravel storage & cache untuk user www-data
 RUN chown -R www-data:www-data storage bootstrap/cache && \
