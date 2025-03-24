@@ -5,13 +5,13 @@ FROM composer:latest AS build
 WORKDIR /app
 
 # Copy Composer files lebih awal untuk cache
-COPY . . 
+COPY composer.json composer.lock ./
 
 # Install dependencies Laravel (tanpa dev dependencies)
 RUN composer install --ignore-platform-reqs --no-dev -a
 
-# Install Octane dengan FrankenPHP tanpa interaksi
-RUN echo "yes" | php artisan octane:install --server=frankenphp --no-interaction
+# Baru setelah itu, copy semua file aplikasi
+COPY . .
 
 ## 2. Main PHP Image
 FROM dunglas/frankenphp:latest
@@ -21,7 +21,7 @@ WORKDIR /app
 
 # Install dependencies dengan cleanup agar image lebih kecil
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates curl ffmpeg \
+    ca-certificates curl \
     && install-php-extensions pcntl zip bcmath pdo_mysql mysqli \
     && rm -rf /var/lib/apt/lists/*
 
@@ -31,8 +31,11 @@ COPY --from=build /app/vendor /app/vendor
 # Copy seluruh kode aplikasi setelah vendor masuk
 COPY . .
 
-# running package discover 
+# Jalankan package discover (sebaiknya setelah seluruh file aplikasi ada)
 RUN php artisan package:discover --ansi
+
+# Install Octane dengan FrankenPHP tanpa interaksi
+RUN echo "yes" | php artisan octane:install --server=frankenphp --no-interaction
 
 # Set permission Laravel storage & cache untuk user www-data
 RUN chown -R www-data:www-data storage bootstrap/cache && \
