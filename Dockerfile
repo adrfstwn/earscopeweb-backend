@@ -31,6 +31,9 @@ COPY . .
 # running package discover 
 RUN php artisan package:discover --ansi
 
+# Install Octane dengan FrankenPHP tanpa interaksi
+RUN echo "yes" | php artisan octane:install --server=frankenphp --no-interaction
+
 # Set permission Laravel storage & cache untuk user www-data
 RUN chown -R www-data:www-data storage bootstrap/cache && \
     chmod -R 777 storage bootstrap/cache
