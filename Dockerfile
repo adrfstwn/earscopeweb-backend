@@ -10,6 +10,9 @@ COPY . .
 # Install dependencies Laravel (tanpa dev dependencies)
 RUN composer install --ignore-platform-reqs --no-dev -a
 
+# Install Octane dengan FrankenPHP tanpa interaksi
+RUN echo "yes" | php artisan octane:install --server=frankenphp --no-interaction
+
 ## 2. Main PHP Image
 FROM dunglas/frankenphp:latest
 
@@ -30,9 +33,6 @@ COPY . .
 
 # running package discover 
 RUN php artisan package:discover --ansi
-
-# Install Octane dengan FrankenPHP tanpa interaksi
-RUN echo "yes" | php artisan octane:install --server=frankenphp --no-interaction
 
 # Set permission Laravel storage & cache untuk user www-data
 RUN chown -R www-data:www-data storage bootstrap/cache && \
