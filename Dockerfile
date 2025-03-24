@@ -1,4 +1,16 @@
-## Main PHP Image
+## Stage 1: Composer untuk install dependencies
+FROM composer:2 as composer
+
+# Workdir aplikasi
+WORKDIR /app
+
+# Copy seluruh kode aplikasi terlebih dahulu
+COPY . .
+
+# Install dependencies aplikasi dengan composer
+RUN composer install --ignore-platform-reqs --no-dev -a
+
+## Stage 2: Main PHP Image dengan FrankenPHP
 FROM dunglas/frankenphp:latest
 
 # Install dependencies dengan cleanup agar image lebih kecil
@@ -10,11 +22,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Workdir aplikasi
 WORKDIR /app
 
-# Copy seluruh kode aplikasi setelah vendor masuk
-COPY . .
-
-# Install dependencies lebih awal untuk caching
-RUN composer install --ignore-platform-reqs --no-dev -a
+# Copy kode aplikasi dan hasil install dependencies dari stage sebelumnya
+COPY --from=composer /app /app
 
 # Install Octane dengan FrankenPHP tanpa interaksi
 RUN echo "yes" | php artisan octane:install --server=frankenphp --no-interaction
