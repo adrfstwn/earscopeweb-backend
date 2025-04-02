@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Video;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Http\File;
 use Illuminate\Support\Facades\Log;
 
@@ -204,100 +203,20 @@ class VideoController extends Controller
      */
     public function showAllVideos()
     {
-        $videos = Video::with('user')->get();
-
-        $videos->transform(function ($video) {
-            // $video->raw_video_url = Storage::url($video->raw_video_path);
-            // $video->processed_video_url = Storage::url($video->processed_video_path);
-            $video->raw_video_stream_url = url("/v1/videos/stream/" . basename($video->raw_video_path));
-            $video->processed_video_stream_url = url("/v1/videos/stream/" . basename($video->processed_video_path));
-            return $video;
-        });
-
-        return response()->json($videos);
-    }
-
-
-
-    /**
-     * @OA\Get(
-     *     path="/v1/videos/{videoId}",
-     *     summary="Get video details by ID",
-     *     tags={"Videos"},
-     *     security={{"bearerAuth":{}}},
-     *     @OA\Parameter(name="videoId", in="path", required=true, @OA\Schema(type="integer")),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Video details",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="id", type="integer"),
-     *             @OA\Property(property="raw_video_url", type="string"),
-     *             @OA\Property(property="processed_video_url", type="string"),
-     *             @OA\Property(property="status", type="string"),
-     *             @OA\Property(property="user", type="object",
-     *                 @OA\Property(property="id", type="integer"),
-     *                 @OA\Property(property="name", type="string")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(response=404, description="Video not found"),
-     *     @OA\Response(response=401, description="Unauthorized")
-     * )
-     */
-    public function showById($videoId)
-    {
-        $video = Video::with('user')->findOrFail($videoId);
-
-        // $video->raw_video_url = Storage::url($video->raw_video_path);
-        // $video->processed_video_url = Storage::url($video->processed_video_path);
-        $video->raw_video_stream_url = url("/v1/videos/stream/" . basename($video->raw_video_path));
-        $video->processed_video_stream_url = url("/v1/videos/stream/" . basename($video->processed_video_path));
-
-        return response()->json($video);
-    }
-
-
-    /**
-     * @OA\Get(
-     *     path="/v1/videos/pasien",
-     *     summary="Get videos assigned to the logged-in patient",
-     *     tags={"Videos"},
-     *     security={{"bearerAuth":{}}},
-     *     @OA\Response(
-     *         response=200,
-     *         description="List of videos assigned to the patient",
-     *         @OA\JsonContent(
-     *             type="array",
-     *             @OA\Items(
-     *                 type="object",
-     *                 @OA\Property(property="id", type="integer"),
-     *                 @OA\Property(property="raw_video_url", type="string"),
-     *                 @OA\Property(property="processed_video_url", type="string"),
-     *                 @OA\Property(property="status", type="string")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(response=401, description="Unauthorized"),
-     *     @OA\Response(response=403, description="Forbidden")
-     * )
-     */
-    public function showVideosByPasien()
-    {
         $user = auth()->user();
+        $videos = collect();
 
-        // Pastikan hanya user dengan role "pasien" yang bisa mengakses endpoint ini
-        if (!$user->hasRole('pasien')) {
-            return response()->json(['message' => 'Forbidden: Only patients can access this endpoint'], 403);
+        if ($user->hasRole('dokter')) {
+            $videos = Video::with('user')->get();
+        } elseif ($user->hasRole('pasien')) {
+            $videos = Video::where('user_id', $user->id)->with('user')->get();
+        } else {
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        // Ambil video yang di-assign ke pasien ini (berdasarkan user_id)
-        $videos = Video::where('user_id', $user->id)->get();
-
-        // Tambahkan URL lengkap untuk setiap video
         $videos->transform(function ($video) {
-            $video->raw_video_url = Storage::url($video->raw_video_path);
-            $video->processed_video_url = Storage::url($video->processed_video_path);
+            $video->raw_video_stream_url = url("/v1/videos/stream/" . basename($video->raw_video_path));
+            $video->processed_video_stream_url = url("/v1/videos/stream/" . basename($video->processed_video_path));
             return $video;
         });
 
@@ -362,6 +281,48 @@ class VideoController extends Controller
      * )
      */
 
+    // public function streamVideo($filename)
+    // {
+    //     Log::info("Streaming request received for: " . $filename);
+
+    //     // Cari video berdasarkan path di database
+    //     $video = Video::where('raw_video_path', 'like', "%{$filename}")
+    //         ->orWhere('processed_video_path', 'like', "%{$filename}")
+    //         ->first();
+
+    //     if (!$video) {
+    //         Log::error("Video not found in database: videos/" . $filename);
+    //         return response()->json(['message' => 'Video not found in database'], 404);
+    //     }
+
+    //     Log::info("Video found in database: " . json_encode($video));
+
+    //     // Tentukan path file yang benar
+    //     $filePath = null;
+    //     if (str_ends_with($video->raw_video_path, $filename)) {
+    //         $filePath = Storage::disk('private')->path($video->raw_video_path);
+    //     } elseif (str_ends_with($video->processed_video_path, $filename)) {
+    //         $filePath = Storage::disk('private')->path($video->processed_video_path);
+    //     }
+
+    //     if (!$filePath || !file_exists($filePath)) {
+    //         Log::error("File not found on storage: " . $filePath);
+    //         return response()->json(['message' => 'File not found'], 404);
+    //     }
+
+    //     Log::info("Streaming file path: " . $filePath);
+
+    //     return response()->stream(function () use ($filePath) {
+    //         $stream = fopen($filePath, 'rb');
+    //         fpassthru($stream);
+    //         fclose($stream);
+    //     }, 200, [
+    //         'Content-Type' => 'video/mp4',
+    //         'Accept-Ranges' => 'bytes',
+    //         'Content-Length' => filesize($filePath),
+    //     ]);
+    // }
+
     public function streamVideo($filename)
     {
         Log::info("Streaming request received for: " . $filename);
@@ -393,16 +354,59 @@ class VideoController extends Controller
 
         Log::info("Streaming file path: " . $filePath);
 
+        // Dapatkan informasi file
+        $fileSize = filesize($filePath);
+        $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+        $contentType = $this->getMimeType($fileExtension);
+
+        // Handle HTTP Range Requests
+        $headers = [
+            'Content-Type' => $contentType,
+            'Accept-Ranges' => 'bytes',
+            'Content-Length' => $fileSize,
+        ];
+
+        if (isset($_SERVER['HTTP_RANGE'])) {
+            // Parse range header
+            $range = $_SERVER['HTTP_RANGE'];
+            preg_match('/bytes=(\d+)-(\d*)/', $range, $matches);
+            $start = intval($matches[1]);
+            $end = isset($matches[2]) && $matches[2] !== '' ? intval($matches[2]) : $fileSize - 1;
+
+            if ($start > $end || $start >= $fileSize) {
+                return response('', 416)->header('Content-Range', "bytes */$fileSize");
+            }
+
+            $length = $end - $start + 1;
+            $headers['Content-Range'] = "bytes $start-$end/$fileSize";
+            $headers['Content-Length'] = $length;
+            $status = 206; // Partial Content
+
+            return response()->stream(function () use ($filePath, $start, $length) {
+                $stream = fopen($filePath, 'rb');
+                fseek($stream, $start);
+                echo fread($stream, $length);
+                fclose($stream);
+            }, $status, $headers);
+        }
+
+        // Jika tidak ada range request, kirim file secara keseluruhan
         return response()->stream(function () use ($filePath) {
             $stream = fopen($filePath, 'rb');
             fpassthru($stream);
             fclose($stream);
-        }, 200, [
-            'Content-Type' => 'video/mp4',
-            'Accept-Ranges' => 'bytes',
-            'Content-Length' => filesize($filePath),
-        ]);
+        }, 200, $headers);
     }
 
+    private function getMimeType($extension)
+    {
+        $mimeTypes = [
+            'mp4' => 'video/mp4',
+            'webm' => 'video/webm',
+            'ogg' => 'video/ogg',
+            'mkv' => 'video/x-matroska',
+        ];
 
+        return $mimeTypes[$extension] ?? 'application/octet-stream';
+    }
 }
