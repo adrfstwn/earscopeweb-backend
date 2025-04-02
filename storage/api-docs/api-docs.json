@@ -799,71 +799,6 @@
             }
         },
         "/v1/videos/{videoId}": {
-            "get": {
-                "tags": [
-                    "Videos"
-                ],
-                "summary": "Get video details by ID",
-                "operationId": "eeed8b39f6ddcc2f00bfaff8dec07955",
-                "parameters": [
-                    {
-                        "name": "videoId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Video details",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "id": {
-                                            "type": "integer"
-                                        },
-                                        "raw_video_url": {
-                                            "type": "string"
-                                        },
-                                        "processed_video_url": {
-                                            "type": "string"
-                                        },
-                                        "status": {
-                                            "type": "string"
-                                        },
-                                        "user": {
-                                            "properties": {
-                                                "id": {
-                                                    "type": "integer"
-                                                },
-                                                "name": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Video not found"
-                    },
-                    "401": {
-                        "description": "Unauthorized"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            },
             "patch": {
                 "tags": [
                     "Videos"
@@ -886,55 +821,6 @@
                     },
                     "404": {
                         "description": "Video not found"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/v1/videos/pasien": {
-            "get": {
-                "tags": [
-                    "Videos"
-                ],
-                "summary": "Get videos assigned to the logged-in patient",
-                "operationId": "1f76df1bad6c346cd8a2e2831303dea0",
-                "responses": {
-                    "200": {
-                        "description": "List of videos assigned to the patient",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "properties": {
-                                            "id": {
-                                                "type": "integer"
-                                            },
-                                            "raw_video_url": {
-                                                "type": "string"
-                                            },
-                                            "processed_video_url": {
-                                                "type": "string"
-                                            },
-                                            "status": {
-                                                "type": "string"
-                                            }
-                                        },
-                                        "type": "object"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized"
-                    },
-                    "403": {
-                        "description": "Forbidden"
                     }
                 },
                 "security": [

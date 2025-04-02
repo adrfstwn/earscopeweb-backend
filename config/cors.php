@@ -15,10 +15,11 @@ return [
     |
     */
 
-    'paths' => ['v1/*'],
+    'paths' => ['v1/*', 'v1/videos/stream/*'],
 
     'allowed_methods' => ['*'],
 
+    //'allowed_origins' => ['*'],
     'allowed_origins' => ['https://earscope.adrfstwn.cloud', 'http://localhost:5173'],
 
     'allowed_origins_patterns' => [],
